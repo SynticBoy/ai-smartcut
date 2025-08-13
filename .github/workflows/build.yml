@@ -49,7 +49,7 @@ jobs:
         run: nuget restore "${{ env.BUILD_PATH }}"
 
       - name: Build (Release)
-        run: msbuild AI.SmartCut.Package.wapproj /restore /p:Configuration=Release /p:Platform=x64
+        run: run: msbuild src/AI.SmartCut.Package/AI.SmartCut.Package.wapproj /restore /p:Configuration=Release /p:Platform=x64
 
       - name: Locate MSIX/Appx
         shell: pwsh
