@@ -1,7 +1,12 @@
-using Microsoft.UI.Xaml;
+using System.Windows;
 
-namespace AI.SmartCut;
-public sealed partial class MainWindow : Window
+namespace AI.SmartCut
 {
-    public MainWindow() => InitializeComponent();
+    public partial class MainWindow : Window
+    {
+        public MainWindow()
+        {
+            InitializeComponent();
+        }
+    }
 }
