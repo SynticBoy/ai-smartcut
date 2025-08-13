@@ -17,7 +17,7 @@ namespace AI.SmartCut
         {
             InitializeComponent();
 
-            // مسیر مدل: src/AI.SmartCut/Assets/Models/u2net.onnx
+
             var modelPath = System.IO.Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory, "Assets", "Models", "u2net.onnx");
 
