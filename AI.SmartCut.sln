@@ -4,8 +4,6 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AI.SmartCut", "src\AI.SmartCut\AI.SmartCut.csproj", "{B1F0C3B2-6A7E-4F5E-9D5E-11E6D8F3A111}"
 EndProject
-Project("{C7167F0D-BC9F-4E6E-AFE1-012C56B48DB5}") = "AI.SmartCut.Package", "src\AI.SmartCut.Package\AI.SmartCut.Package.wapproj", "{9E2D5E3E-8B6D-4B28-9274-8F0B7A7F8A22}"
-EndProject
 Global
     GlobalSection(SolutionConfigurationPlatforms) = preSolution
         Debug|x64 = Debug|x64
