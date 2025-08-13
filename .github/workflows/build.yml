@@ -1,68 +1,29 @@
 name: Build AI SmartCut
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
 
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
 
-      - name: Show tree (for debug)
-        shell: pwsh
-        run: |
-          Write-Host "Repo tree:"
-          Get-ChildItem -Recurse -File | Select-Object FullName
+    - name: Restore NuGet packages
+      run: nuget restore src/AI.SmartCut.Package/AI.SmartCut.Package.wapproj
 
-      # کشف خودکار .sln یا .wapproj (ولی این‌بار دیگر در ریشه/src باید باشند، نه زیر .github)
-      - name: Detect solution or package project
-        id: detect
-        shell: pwsh
-        run: |
-          $sln = Get-ChildItem -Recurse -Filter *.sln | Select-Object -First 1
-          if ($sln) {
-            "BUILD_PATH=$($sln.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
-            "KIND=sln"                 | Out-File -FilePath $env:GITHUB_ENV -Append
-            Write-Host "Using solution: $($sln.FullName)"
-            exit 0
-          }
-          $wapproj = Get-ChildItem -Recurse -Filter *.wapproj | Select-Object -First 1
-          if ($wapproj) {
-            "BUILD_PATH=$($wapproj.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
-            "KIND=wapproj"                    | Out-File -FilePath $env:GITHUB_ENV -Append
-            Write-Host "Using package project: $($wapproj.FullName)"
-            exit 0
-          }
-          Write-Error "No .sln or .wapproj found."; exit 1
-
-      - name: Restore (NuGet)
-        if: env.KIND == 'sln'
-        run: nuget restore "${{ env.BUILD_PATH }}"
-
-      - name: Build (Release)
-        run: run: msbuild src/AI.SmartCut.Package/AI.SmartCut.Package.wapproj /restore /p:Configuration=Release /p:Platform=x64
-
-      - name: Locate MSIX/Appx
-        shell: pwsh
-        run: |
-          $pkg = Get-ChildItem -Recurse -Include *.msix,*.msixbundle,*.appx,*.appxbundle |
-            Sort-Object LastWriteTime -Descending | Select-Object -First 1
-          if (-not $pkg) { Write-Error "No MSIX/Appx produced"; exit 1 }
-          "PKG=$($pkg.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
-          Write-Host "Package: $($pkg.FullName)"
-
-      - name: Upload package (artifact v4)
-        uses: actions/upload-artifact@v4
-        with:
-          name: AI-SmartCut-MSIX
-          path: ${{ env.PKG }}
-          if-no-files-found: error
+    - name: Build AI SmartCut Package
+      run: msbuild src/AI.SmartCut.Package/AI.SmartCut.Package.wapproj /p:Configuration=Release /p:Platform=x64 /p:TargetPlatformVersion=10.0.19041.0 /p:SupportedOSPlatformVersion=10.0.19041.0
