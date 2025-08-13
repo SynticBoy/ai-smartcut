@@ -1,37 +1,38 @@
 name: Build AI.SmartCut
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup .NET SDK (8.x)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
-
-      - name: Restore NuGet packages
-        run: nuget restore "AI.SmartCut.sln"
+      # مهم: restore با RID تا runtime pack ها (Microsoft.Windows.SDK.NET.Ref) دانلود شوند
+      - name: Restore (dotnet)
+        shell: pwsh
+        run: |
+          dotnet restore "src/AI.SmartCut/AI.SmartCut.csproj" -p:RuntimeIdentifier=win-x64
 
       - name: Build Release (x64)
         shell: pwsh
         run: |
-          msbuild "src/AI.SmartCut/AI.SmartCut.csproj" /p:Configuration=Release /p:Platform=x64 /p:TargetPlatformVersion=10.0.19041.0 /p:SupportedOSPlatformVersion=10.0.19041.0
+          msbuild "src/AI.SmartCut/AI.SmartCut.csproj" /p:Configuration=Release /p:Platform=x64 /p:RuntimeIdentifier=win-x64
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: AI.SmartCut-x64
-          path: src/AI.SmartCut/bin/Release
+          path: src/AI.SmartCut/bin/x64/Release
+          if-no-files-found: error
