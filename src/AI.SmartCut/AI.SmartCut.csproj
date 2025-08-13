@@ -1,13 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-
-    <!-- WinUI 3 روی Windows 10 19041 به بالا (ویندوز 10 و 11 را پوشش می‌دهد) -->
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
-
-    <!-- فقط x64؛ روی ویندوز 10 و 11 کار می‌کند -->
-    <RuntimeIdentifier>win10-x64</RuntimeIdentifier>
-
     <UseWinUI>true</UseWinUI>
     <Nullable>enable</Nullable>
   </PropertyGroup>
