@@ -17,7 +17,7 @@ namespace AI.SmartCut.Services
         private InferenceSession? _session;
         private string? _inputName;
         private string? _outputName;
-        private int _inH = 320, _inW = 320; // پیش‌فرض اگر شکل ورودی در دسترس نبود
+        private int _inH = 320, _inW = 320; 
 
         public bool IsReady => _session != null;
 
@@ -26,11 +26,9 @@ namespace AI.SmartCut.Services
             _modelPath = modelPath;
             if (!File.Exists(_modelPath)) return;
 
-            // فقط CPU، که روی Runner و سیستم همه کار کند
             var opts = new SessionOptions();
             _session = new InferenceSession(_modelPath, opts);
 
-            // نام اولین ورودی/خروجی را کشف کن
             _inputName = _session.InputMetadata.Keys.FirstOrDefault();
             _outputName = _session.OutputMetadata.Keys.FirstOrDefault();
 
@@ -38,10 +36,8 @@ namespace AI.SmartCut.Services
             {
                 var meta = _session.InputMetadata[_inputName];
                 var dims = meta.Dimensions;
-                // انتظار: [1,3,H,W] یا [1,1,H,W]
                 if (dims != null && dims.Length == 4)
                 {
-                    // H,W معمولاً اندیس‌های 2 و 3 هستند
                     if (dims[2] > 0) _inH = dims[2].Value;
                     if (dims[3] > 0) _inW = dims[3].Value;
                 }
@@ -54,7 +50,6 @@ namespace AI.SmartCut.Services
 
             using var src = await Image.LoadAsync<Rgba32>(imagePath).ConfigureAwait(false);
 
-            // 1) Resize به ابعاد ورودی مدل
             using var resized = src.Clone(ctx => ctx.Resize(new ResizeOptions
             {
                 Size = new Size(_inW, _inH),
@@ -62,7 +57,6 @@ namespace AI.SmartCut.Services
                 Sampler = KnownResamplers.Bicubic
             }));
 
-            // 2) به CHW float32 [1,3,H,W]
             var inputTensor = new DenseTensor<float>(new[] { 1, 3, _inH, _inW });
             for (int y = 0; y < _inH; y++)
             {
@@ -87,13 +81,11 @@ namespace AI.SmartCut.Services
 
             using (var results = _session!.Run(feeds))
             {
-                // خروجی اول
                 var first = _outputName != null ? results.First(v => v.Name == _outputName)
                                                 : results.First();
 
-                // تلاش برای خواندن به عنوان Tensor<float>
                 var t = first.AsTensor<float>();
-                var dims = t.Dimensions.ToArray(); // معمولاً [1,1,H,W] یا [1,H,W] یا [H,W]
+                var dims = t.Dimensions.ToArray();
 
                 if (dims.Length == 4)
                 {
@@ -114,7 +106,6 @@ namespace AI.SmartCut.Services
                 mask1d = t.ToArray();
             }
 
-            // 3) ساخت تصویر ماسک از خروجی
             using var maskImg = new Image<L8>(mW, mH);
             for (int y = 0; y < mH; y++)
             {
@@ -122,17 +113,14 @@ namespace AI.SmartCut.Services
                 for (int x = 0; x < mW; x++)
                 {
                     int idx = y * mW + x;
-                    // اگر خروجی چندکاناله بود، این روش ساده فرض می‌کند اولین کانال flatten شده‌ست
                     var v = idx < mask1d.Length ? mask1d[idx] : 0f;
                     var m = Math.Clamp(v, 0f, 1f);
                     row[x] = new L8((byte)(m * 255));
                 }
             }
 
-            // 4) Resize ماسک به ابعاد اصلی
             using var maskResized = maskImg.Clone(ctx => ctx.Resize(src.Width, src.Height, KnownResamplers.Bicubic));
 
-            // 5) تولید خروجی با آلفای ماسک
             using var output = new Image<Rgba32>(src.Width, src.Height);
             for (int y = 0; y < src.Height; y++)
             {
