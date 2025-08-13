@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
 
-    <!-- خروجی تست محلی self-contained -->
+
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
   </PropertyGroup>
@@ -17,7 +17,7 @@
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
   </ItemGroup>
 
-  <!-- هرچیزی در Assets به خروجی کپی شود -->
+
   <ItemGroup>
     <None Update="Assets\**\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
