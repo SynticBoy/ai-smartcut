@@ -5,7 +5,6 @@ on:
 
 jobs:
   build:
-    # برای ثبات فعلاً به 2022 پین می‌کنیم (اعلامیه windows-latest رو بی‌اثر می‌کنه)
     runs-on: windows-2022
 
     steps:
@@ -18,19 +17,45 @@ jobs:
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v2
 
-      - name: Restore
-        run: nuget restore AI.SmartCut.sln
+      - name: Show tree
+        shell: pwsh
+        run: |
+          Write-Host "Repo tree:"
+          Get-ChildItem -Recurse -File | Select-Object FullName
+
+      - name: Detect solution or package project
+        id: detect
+        shell: pwsh
+        run: |
+          $sln = Get-ChildItem -Recurse -Filter *.sln | Select-Object -First 1
+          if ($sln) {
+            "BUILD_PATH=$($sln.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+            "KIND=sln"                 | Out-File -FilePath $env:GITHUB_ENV -Append
+            Write-Host "Using solution: $($sln.FullName)"
+            exit 0
+          }
+          $wapproj = Get-ChildItem -Recurse -Filter *.wapproj | Select-Object -First 1
+          if ($wapproj) {
+            "BUILD_PATH=$($wapproj.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+            "KIND=wapproj"                    | Out-File -FilePath $env:GITHUB_ENV -Append
+            Write-Host "Using package project: $($wapproj.FullName)"
+            exit 0
+          }
+          Write-Error "No .sln or .wapproj found."; exit 1
+
+      - name: Restore (NuGet)
+        if: env.KIND == 'sln'
+        run: nuget restore "${{ env.BUILD_PATH }}"
 
       - name: Build (Release)
-        run: msbuild AI.SmartCut.sln /t:Rebuild /p:Configuration=Release /m
+        run: msbuild "${{ env.BUILD_PATH }}" /t:Rebuild /p:Configuration=Release /m
 
       - name: Locate MSIX/Appx
         shell: pwsh
         run: |
           $pkg = Get-ChildItem -Recurse -Include *.msix,*.msixbundle,*.appx,*.appxbundle |
-            Where-Object { $_.FullName -match "Release" } |
-            Select-Object -First 1
-          if (-not $pkg) { Write-Error "No MSIX/Appx found under Release"; exit 1 }
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $pkg) { Write-Error "No MSIX/Appx produced"; exit 1 }
           "PKG=$($pkg.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
           Write-Host "Package: $($pkg.FullName)"
 
