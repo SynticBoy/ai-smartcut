@@ -1,0 +1,31 @@
+name: Build AI SmartCut
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.3
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v1.0.5
+
+      - name: Restore NuGet packages
+        run: nuget restore AI-SmartCut.sln
+
+      - name: Build solution
+        run: msbuild AI-SmartCut.sln /p:Configuration=Release
+
+      - name: Upload MSIX package
+        uses: actions/upload-artifact@v3
+        with:
+          name: AI-SmartCut
+          path: |
+            **/*.msix
+            **/*.cer
