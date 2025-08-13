@@ -5,27 +5,38 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    # برای ثبات فعلاً به 2022 پین می‌کنیم (اعلامیه windows-latest رو بی‌اثر می‌کنه)
+    runs-on: windows-2022
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v1.3
+        uses: microsoft/setup-msbuild@v2
 
       - name: Setup NuGet
-        uses: NuGet/setup-nuget@v1.0.5
+        uses: NuGet/setup-nuget@v2
 
-      - name: Restore NuGet packages
-        run: nuget restore AI-SmartCut.sln
+      - name: Restore
+        run: nuget restore AI.SmartCut.sln
 
-      - name: Build solution
-        run: msbuild AI-SmartCut.sln /p:Configuration=Release
+      - name: Build (Release)
+        run: msbuild AI.SmartCut.sln /t:Rebuild /p:Configuration=Release /m
 
-      - name: Upload MSIX package
-        uses: actions/upload-artifact@v3
+      - name: Locate MSIX/Appx
+        shell: pwsh
+        run: |
+          $pkg = Get-ChildItem -Recurse -Include *.msix,*.msixbundle,*.appx,*.appxbundle |
+            Where-Object { $_.FullName -match "Release" } |
+            Select-Object -First 1
+          if (-not $pkg) { Write-Error "No MSIX/Appx found under Release"; exit 1 }
+          "PKG=$($pkg.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "Package: $($pkg.FullName)"
+
+      - name: Upload package (artifact v4)
+        uses: actions/upload-artifact@v4
         with:
-          name: AI-SmartCut
-          path: |
-            **/*.msix
-            **/*.cer
+          name: AI-SmartCut-MSIX
+          path: ${{ env.PKG }}
+          if-no-files-found: error
