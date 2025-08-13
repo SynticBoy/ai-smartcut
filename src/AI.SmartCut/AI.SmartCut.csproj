@@ -1,16 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+
+    <!-- WinUI 3 روی Windows 10 19041 به بالا (ویندوز 10 و 11 را پوشش می‌دهد) -->
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+
+    <!-- فقط x64؛ روی ویندوز 10 و 11 کار می‌کند -->
+    <RuntimeIdentifier>win10-x64</RuntimeIdentifier>
+
     <UseWinUI>true</UseWinUI>
-    <EnableMsixTooling>false</EnableMsixTooling>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- WinAppSDK شامل WinUI 3 است -->
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.4" />
-    <PackageReference Include="Microsoft.UI.Xaml" Version="2.8.6" />
   </ItemGroup>
 
+  <!-- اگر دارایی‌هایی مثل آیکون/مدل داری و می‌خواهی کپی شوند -->
+  <ItemGroup>
+    <Content Include="Assets\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
