@@ -49,7 +49,7 @@ jobs:
         run: nuget restore "${{ env.BUILD_PATH }}"
 
       - name: Build (Release)
-        run: msbuild "${{ env.BUILD_PATH }}" /t:Rebuild /p:Configuration=Release /m
+        run: msbuild "${{ env.BUILD_PATH }}" /t:build /p:Configuration=Release /m
 
       - name: Locate MSIX/Appx
         shell: pwsh
