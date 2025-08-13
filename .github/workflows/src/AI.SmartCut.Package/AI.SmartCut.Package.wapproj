@@ -1,0 +1,36 @@
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <ProjectGuid>{9E2D5E3E-8B6D-4B28-9274-8F0B7A7F8A22}</ProjectGuid>
+    <OutputName>AI.SmartCut</OutputName>
+    <PackageCertificateKeyFile></PackageCertificateKeyFile>
+    <AppxBundle>Always</AppxBundle>
+    <PackageCertificateThumbprint></PackageCertificateThumbprint>
+    <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
+    <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest" />
+    <Content Include="Images\**\*.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AI.SmartCut\AI.SmartCut.csproj">
+      <Project>{B1F0C3B2-6A7E-4F5E-9D5E-11E6D8F3A111}</Project>
+      <Name>AI.SmartCut</Name>
+    </ProjectReference>
+  </ItemGroup>
+
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets" />
+</Project>
