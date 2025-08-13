@@ -1,0 +1,32 @@
+<Window
+  x:Class="AI.SmartCut.MainWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  Title="AI SmartCut" Height="680" Width="1080">
+  <Grid Background="#11161D">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+    </Grid.RowDefinitions>
+
+    <Grid Padding="20" Background="#151B24">
+      <TextBlock Text="AI SmartCut — ash.as" Foreground="White" FontSize="18" FontWeight="SemiBold"/>
+    </Grid>
+
+    <StackPanel Grid.Row="1" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="18">
+      <Button Content="Remove Background" Width="340" Height="58"/>
+      <TextBlock Text="5 free uses left" Foreground="#9EDCFF" HorizontalAlignment="Center"/>
+      <WrapPanel HorizontalAlignment="Center">
+        <Border Background="#232A33" CornerRadius="10" Padding="12" Margin="8">
+          <TextBlock Foreground="#1FA2FF" Text="Manual Edit"/>
+        </Border>
+        <Border Background="#232A33" CornerRadius="10" Padding="12" Margin="8">
+          <TextBlock Foreground="#1FA2FF" Text="Effects"/>
+        </Border>
+        <Border Background="#232A33" CornerRadius="10" Padding="12" Margin="8">
+          <TextBlock Foreground="#1FA2FF" Text="Batch Remove"/>
+        </Border>
+      </WrapPanel>
+    </StackPanel>
+  </Grid>
+</Window>
