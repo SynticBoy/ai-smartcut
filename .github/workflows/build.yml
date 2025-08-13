@@ -1,11 +1,16 @@
-name: Build AI SmartCut (MSIX from csproj)
+name: Build AI.SmartCut
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-latest
 
     steps:
       - name: Checkout
@@ -14,24 +19,19 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Build Release (x64) + MSIX
-        run: |
-          msbuild src/AI.SmartCut/AI.SmartCut.csproj ^
-            /p:Configuration=Release ^
-            /p:Platform=x64
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
 
-      - name: Find MSIX/Appx
+      - name: Restore NuGet packages
+        run: nuget restore "AI.SmartCut.sln"
+
+      - name: Build Release (x64)
         shell: pwsh
         run: |
-          $pkg = Get-ChildItem -Recurse -Include *.msix,*.msixbundle,*.appx,*.appxbundle |
-            Sort-Object LastWriteTime -Descending | Select-Object -First 1
-          if (-not $pkg) { Write-Error "No MSIX/Appx produced"; exit 1 }
-          "PKG=$($pkg.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
-          Write-Host "Package found: $($pkg.FullName)"
+          msbuild "src/AI.SmartCut/AI.SmartCut.csproj" /p:Configuration=Release /p:Platform=x64 /p:TargetPlatformVersion=10.0.19041.0 /p:SupportedOSPlatformVersion=10.0.19041.0
 
-      - name: Upload package (artifact v4)
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AI-SmartCut-MSIX
-          path: ${{ env.PKG }}
-          if-no-files-found: error
+          name: AI.SmartCut-x64
+          path: src/AI.SmartCut/bin/Release
