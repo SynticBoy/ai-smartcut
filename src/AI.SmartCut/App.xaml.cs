@@ -1,9 +1,9 @@
-using Microsoft.UI.Xaml;
+using System.Windows;
 
-namespace AI.SmartCut;
-public partial class App : Application
+namespace AI.SmartCut
 {
-    public App() => InitializeComponent();
-    protected override void OnLaunched(LaunchActivatedEventArgs args)
-        => new MainWindow().Activate();
+    public partial class App : Application
+    {
+        // No UWP/WinUI OnLaunched here
+    }
 }
