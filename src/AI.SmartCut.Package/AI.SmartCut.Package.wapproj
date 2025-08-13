@@ -1,50 +1,27 @@
-<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-
-  <!-- کانفیگ‌ها -->
-  <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|x64">
-      <Configuration>Debug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|x64">
-      <Configuration>Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" />
 
   <PropertyGroup>
-    <!-- این GUID را اگر در فایل فعلی‌ات مقدار دیگری دارد، همان مقدار خودت را نگه دار -->
-    <ProjectGuid>{9E2D5E3E-8B6D-4B28-9274-8F0B7A7F8A22}</ProjectGuid>
-
-    <OutputType>Appx</OutputType>
-
-    <!-- جلوگیری از خطای BaseOutputPath/OutputPath -->
-    <BaseOutputPath>bin\</BaseOutputPath>
-    <OutputPath>bin\$(Configuration)\</OutputPath>
-
-    <!-- تولید باندل برای x64 -->
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
+    <ProjectGuid>{YOUR-GUID-HERE}</ProjectGuid>
+    <OutputType>AppContainerExe</OutputType>
     <AppxBundle>Always</AppxBundle>
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
-
-    <!-- آپدیت‌چکر غیر فعال -->
-    <GenerateAppInstallerFile>false</GenerateAppInstallerFile>
-    <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
+    <PackageCertificateKeyFile>AI.SmartCut_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <PackageCertificateThumbprint></PackageCertificateThumbprint>
+    <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
+    <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+    <PackageCertificatePassword></PackageCertificatePassword>
+    <TargetPlatformVersion>10.0.19041.0</TargetPlatformVersion>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
   </PropertyGroup>
 
-  <!-- مانيفست و تصاویر -->
   <ItemGroup>
-    <AppxManifest Include="Package.appxmanifest" />
-    <Content Include="Images\**\*.*" />
+    <AppxManifest Include="Package.appxmanifest">
+      <SubType>Designer</SubType>
+    </AppxManifest>
   </ItemGroup>
 
-  <!-- رفرنس به پروژه UI -->
-  <ItemGroup>
-    <ProjectReference Include="..\AI.SmartCut\AI.SmartCut.csproj">
-      <Name>AI.SmartCut</Name>
-    </ProjectReference>
-  </ItemGroup>
-
-  <!-- تارگت‌های بسته‌بندی -->
-  <Import Project="$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets" />
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\AppxPackage\Microsoft.AppxPackage.Targets" />
 </Project>
