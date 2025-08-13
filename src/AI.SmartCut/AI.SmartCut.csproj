@@ -1,25 +1,27 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-
-    <!-- ویندوز 11 (22H2) و بالاتر؛ با 10 جدید هم سازگار -->
-    <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
-    <TargetPlatformVersion>10.0.22621.0</TargetPlatformVersion>
-    <SupportedOSPlatformVersion>10.0.22621.0</SupportedOSPlatformVersion>
-
-    <!-- WPF با SDK عمومی -->
+    <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
-
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+
+    <!-- خروجی تست محلی self-contained -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
   </PropertyGroup>
 
-  <!-- اگر پکیجی داری که WinMD می‌کشه (مثل Windows.SDK.Contracts)، حذفش کن -->
   <ItemGroup>
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.18.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
   </ItemGroup>
 
+  <!-- هرچیزی در Assets به خروجی کپی شود -->
   <ItemGroup>
-    <Content Include="Assets\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Assets\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
+
 </Project>
