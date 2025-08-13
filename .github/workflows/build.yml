@@ -1,38 +1,31 @@
-name: Build AI.SmartCut
+name: build-windows-artifact
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  pull_request:
 
 jobs:
   build:
-    runs-on: windows-2022
-
+    runs-on: windows-2022  # پایدارتر از windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET SDK (8.x)
+      - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+      - name: Restore
+        run: dotnet restore "src/AI.SmartCut/AI.SmartCut.csproj" -r win-x64
 
-      # مهم: restore با RID تا runtime pack ها (Microsoft.Windows.SDK.NET.Ref) دانلود شوند
-      - name: Restore (dotnet)
-        shell: pwsh
-        run: |
-          dotnet restore "src/AI.SmartCut/AI.SmartCut.csproj" -p:RuntimeIdentifier=win-x64
+      - name: Publish (Self-Contained)
+        run: dotnet publish "src/AI.SmartCut/AI.SmartCut.csproj" -c Release -r win-x64 --self-contained true -o out/AI.SmartCut
 
-      - name: Build Release (x64)
-        shell: pwsh
-        run: |
-          msbuild "src/AI.SmartCut/AI.SmartCut.csproj" /p:Configuration=Release /p:Platform=x64 /p:RuntimeIdentifier=win-x64
-
-      - name: Upload build artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AI.SmartCut-x64
-          path: src/AI.SmartCut/bin/x64/Release
+          name: AI-SmartCut-Exe
+          path: out/AI.SmartCut/**
           if-no-files-found: error
