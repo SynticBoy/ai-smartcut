@@ -17,12 +17,13 @@ jobs:
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v2
 
-      - name: Show tree
+      - name: Show tree (for debug)
         shell: pwsh
         run: |
           Write-Host "Repo tree:"
           Get-ChildItem -Recurse -File | Select-Object FullName
 
+      # کشف خودکار .sln یا .wapproj (ولی این‌بار دیگر در ریشه/src باید باشند، نه زیر .github)
       - name: Detect solution or package project
         id: detect
         shell: pwsh
