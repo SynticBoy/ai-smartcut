@@ -1,18 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
-    <UseWinUI>true</UseWinUI>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- WinAppSDK شامل WinUI 3 است -->
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.4" />
+    <PackageReference Include="Microsoft.Windows.SDK.Contracts" Version="10.0.22621.1" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
+    <PackageReference Include="OpenCvSharp4" Version="4.8.0.20230708" />
   </ItemGroup>
 
-  <!-- اگر دارایی‌هایی مثل آیکون/مدل داری و می‌خواهی کپی شوند -->
-  <ItemGroup>
-    <Content Include="Assets\**\*.*" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
 </Project>
