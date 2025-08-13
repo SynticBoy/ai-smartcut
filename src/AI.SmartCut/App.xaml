@@ -2,7 +2,5 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
-  <Application.Resources>
-    <!-- app-level resources -->
-  </Application.Resources>
+  <Application.Resources/>
 </Application>
