@@ -9,7 +9,7 @@
       <RowDefinition Height="*"/>
     </Grid.RowDefinitions>
 
-    <Grid Padding="20" Background="#151B24">
+    <Grid Margin="20" Background="#151B24">
       <TextBlock Text="AI SmartCut — ash.as" Foreground="White" FontSize="18" FontWeight="SemiBold"/>
     </Grid>
 
