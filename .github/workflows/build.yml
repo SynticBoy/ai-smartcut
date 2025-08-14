@@ -25,12 +25,15 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-          cache: true
-          cache-dependency-path: |
-            **/global.json
-            **/*.csproj
-            **/packages.lock.json
-            **/NuGet.config
+
+      - name: Inspect csproj for stray characters
+        shell: pwsh
+        run: |
+          $p = "$env:PROJECT_PATH"
+          $t = Get-Content $p -Raw
+          if ($t -match '```') { throw "Backticks detected in $p. Remove markdown fences." }
+          [xml]$xml = Get-Content $p -Raw
+          Write-Host "XML parse OK."
 
       - name: Restore
         run: dotnet restore $env:PROJECT_PATH --nologo
