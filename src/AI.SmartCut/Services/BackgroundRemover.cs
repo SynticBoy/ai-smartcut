@@ -1,145 +1,102 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.ML.OnnxRuntime;
-using Microsoft.ML.OnnxRuntime.Tensors;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using Microsoft.ML.OnnxRuntime;
+using Microsoft.ML.OnnxRuntime.Tensors;
 
-namespace AI.SmartCut.Services
+namespace AI.SmartCut
 {
-    public sealed class BackgroundRemover : IDisposable
+    public static class BackgroundRemover
     {
-        private readonly string _modelPath;
-        private InferenceSession? _session;
-        private string? _inputName;
-        private string? _outputName;
-        private int _inH = 320, _inW = 320; 
+        private static InferenceSession _session;
+        private static readonly object _lock = new();
 
-        public bool IsReady => _session != null;
-
-        public BackgroundRemover(string modelPath)
+        static BackgroundRemover()
         {
-            _modelPath = modelPath;
-            if (!File.Exists(_modelPath)) return;
+            string modelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Models", "u2net.onnx");
 
-            var opts = new SessionOptions();
-            _session = new InferenceSession(_modelPath, opts);
+            if (!File.Exists(modelPath))
+                throw new FileNotFoundException($"Model file not found at {modelPath}");
 
-            _inputName = _session.InputMetadata.Keys.FirstOrDefault();
-            _outputName = _session.OutputMetadata.Keys.FirstOrDefault();
+            _session = new InferenceSession(modelPath);
+        }
 
-            if (_inputName != null)
+        public static Image<Rgba32> RemoveBackground(Image<Rgba32> inputImage)
+        {
+            lock (_lock)
             {
-                var meta = _session.InputMetadata[_inputName];
-                var dims = meta.Dimensions;
-                if (dims != null && dims.Length == 4)
-                {
-                    if (dims[2] > 0) _inH = dims[2].Value;
-                    if (dims[3] > 0) _inW = dims[3].Value;
-                }
+                // Resize to model input
+                var resized = inputImage.Clone(ctx => ctx.Resize(320, 320));
+                var inputTensor = ImageToTensor(resized);
+
+                // Run model
+                var inputs = new List<NamedOnnxValue> {
+                    NamedOnnxValue.CreateFromTensor("input", inputTensor)
+                };
+                using var results = _session.Run(inputs);
+                var output = results.First().AsTensor<float>();
+
+                // Convert mask to image
+                var mask = TensorToImage(output, resized.Width, resized.Height);
+
+                // Apply mask to original image
+                return ApplyMask(inputImage, mask);
             }
         }
 
-        public async Task<byte[]> RemoveBackgroundAsync(string imagePath)
+        private static DenseTensor<float> ImageToTensor(Image<Rgba32> image)
         {
-            if (!IsReady) throw new InvalidOperationException("Model not loaded.");
-
-            using var src = await Image.LoadAsync<Rgba32>(imagePath).ConfigureAwait(false);
-
-            using var resized = src.Clone(ctx => ctx.Resize(new ResizeOptions
+            var tensor = new DenseTensor<float>(new[] { 1, 3, image.Height, image.Width });
+            for (int y = 0; y < image.Height; y++)
             {
-                Size = new Size(_inW, _inH),
-                Mode = ResizeMode.Stretch,
-                Sampler = KnownResamplers.Bicubic
-            }));
-
-            var inputTensor = new DenseTensor<float>(new[] { 1, 3, _inH, _inW });
-            for (int y = 0; y < _inH; y++)
-            {
-                var row = resized.GetPixelRowSpan(y);
-                for (int x = 0; x < _inW; x++)
+                for (int x = 0; x < image.Width; x++)
                 {
-                    int idx = y * _inW + x;
-                    var p = row[x];
-                    inputTensor[0, 0, y, x] = p.R / 255f;
-                    inputTensor[0, 1, y, x] = p.G / 255f;
-                    inputTensor[0, 2, y, x] = p.B / 255f;
+                    var pixel = image[x, y];
+                    tensor[0, 0, y, x] = pixel.R / 255f;
+                    tensor[0, 1, y, x] = pixel.G / 255f;
+                    tensor[0, 2, y, x] = pixel.B / 255f;
                 }
             }
-
-            var feeds = new List<NamedOnnxValue>
-            {
-                NamedOnnxValue.CreateFromTensor(_inputName ?? "input", inputTensor)
-            };
-
-            float[] mask1d;
-            int mH = _inH, mW = _inW;
-
-            using (var results = _session!.Run(feeds))
-            {
-                var first = _outputName != null ? results.First(v => v.Name == _outputName)
-                                                : results.First();
-
-                var t = first.AsTensor<float>();
-                var dims = t.Dimensions.ToArray();
-
-                if (dims.Length == 4)
-                {
-                    mH = dims[2];
-                    mW = dims[3];
-                }
-                else if (dims.Length == 3)
-                {
-                    mH = dims[1];
-                    mW = dims[2];
-                }
-                else if (dims.Length == 2)
-                {
-                    mH = dims[0];
-                    mW = dims[1];
-                }
-
-                mask1d = t.ToArray();
-            }
-
-            using var maskImg = new Image<L8>(mW, mH);
-            for (int y = 0; y < mH; y++)
-            {
-                var row = maskImg.GetPixelRowSpan(y);
-                for (int x = 0; x < mW; x++)
-                {
-                    int idx = y * mW + x;
-                    var v = idx < mask1d.Length ? mask1d[idx] : 0f;
-                    var m = Math.Clamp(v, 0f, 1f);
-                    row[x] = new L8((byte)(m * 255));
-                }
-            }
-
-            using var maskResized = maskImg.Clone(ctx => ctx.Resize(src.Width, src.Height, KnownResamplers.Bicubic));
-
-            using var output = new Image<Rgba32>(src.Width, src.Height);
-            for (int y = 0; y < src.Height; y++)
-            {
-                var sRow = src.GetPixelRowSpan(y);
-                var mRow = maskResized.GetPixelRowSpan(y);
-                var oRow = output.GetPixelRowSpan(y);
-                for (int x = 0; x < src.Width; x++)
-                {
-                    var p = sRow[x];
-                    var a = mRow[x].PackedValue; // 0..255
-                    oRow[x] = new Rgba32(p.R, p.G, p.B, a);
-                }
-            }
-
-            using var ms = new MemoryStream();
-            await output.SaveAsPngAsync(ms).ConfigureAwait(false);
-            return ms.ToArray();
+            return tensor;
         }
 
-        public void Dispose() => _session?.Dispose();
+        private static Image<Rgba32> TensorToImage(Tensor<float> tensor, int width, int height)
+        {
+            var mask = new Image<Rgba32>(width, height);
+            var min = tensor.Min();
+            var max = tensor.Max();
+            var range = max - min;
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    var value = (tensor[0, 0, y, x] - min) / range;
+                    byte intensity = (byte)(value * 255);
+                    mask[x, y] = new Rgba32(intensity, intensity, intensity, 255);
+                }
+            }
+            return mask;
+        }
+
+        private static Image<Rgba32> ApplyMask(Image<Rgba32> original, Image<Rgba32> mask)
+        {
+            var result = new Image<Rgba32>(original.Width, original.Height);
+            var resizedMask = mask.Clone(ctx => ctx.Resize(original.Width, original.Height));
+
+            for (int y = 0; y < original.Height; y++)
+            {
+                for (int x = 0; x < original.Width; x++)
+                {
+                    var pixel = original[x, y];
+                    var alpha = resizedMask[x, y].R / 255f;
+                    result[x, y] = new Rgba32(pixel.R, pixel.G, pixel.B, (byte)(alpha * 255));
+                }
+            }
+            return result;
+        }
     }
 }
