@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 
-    <!-- WPF + trimming do not mix -->
+    <!-- WPF and trimming do not mix -->
     <PublishTrimmed>false</PublishTrimmed>
     <PublishAot>false</PublishAot>
 
@@ -23,8 +23,9 @@
 
   <ItemGroup>
     <PackageReference Include="SixLabors.ImageSharp" Version="3.*" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.*" />
-    <PackageReference Include="System.Numerics.Tensors" Version="0.*" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.22.1" />
+    <!-- Fix NU1605: OnnxRuntime requires System.Numerics.Tensors >= 9.0.0 -->
+    <PackageReference Include="System.Numerics.Tensors" Version="9.*" />
   </ItemGroup>
 
   <!-- Ensure your model/assets are copied to output -->
