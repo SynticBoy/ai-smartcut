@@ -21,7 +21,8 @@ namespace AI.SmartCut
         {
             var dialog = new OpenFileDialog
             {
-                Filter = "Image Files|*.png;*.jpg;*.jpeg;*.bmp;*.webp"
+                // NOTE: removed *.webp from filter to avoid runtime NotSupportedException unless ImageSharp.Webp is added.
+                Filter = "Image Files|*.png;*.jpg;*.jpeg;*.bmp"
             };
 
             if (dialog.ShowDialog() == true)
@@ -29,6 +30,7 @@ namespace AI.SmartCut
                 try
                 {
                     TxtStatus.Text = "Processing...";
+
                     using var img = Image.Load<Rgba32>(dialog.FileName);
                     ImgOriginal.Source = ToBitmapImage(img);
 
@@ -40,7 +42,13 @@ namespace AI.SmartCut
                         Path.GetDirectoryName(dialog.FileName)!,
                         Path.GetFileNameWithoutExtension(dialog.FileName) + "_nobg.png"
                     );
-                    cut.Save(savePath, new PngEncoder() { ColorType = PngColorType.Rgba });
+
+                    var encoder = new PngEncoder
+                    {
+                        ColorType = PngColorType.RgbWithAlpha
+                    };
+
+                    cut.Save(savePath, encoder);
                     TxtStatus.Text = $"Saved: {savePath}";
                 }
                 catch (Exception ex)
@@ -54,7 +62,7 @@ namespace AI.SmartCut
         private static BitmapImage ToBitmapImage(Image<Rgba32> image)
         {
             using var ms = new MemoryStream();
-            image.SaveAsPng(ms);
+            image.SaveAsPng(ms); // preserves alpha by default
             ms.Position = 0;
 
             var bmp = new BitmapImage();
