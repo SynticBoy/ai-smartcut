@@ -1,9 +1,11 @@
 using Microsoft.Win32;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Formats.Png;
 using System;
 using System.IO;
 using System.Windows;
+using System.Windows.Media.Imaging;
 
 namespace AI.SmartCut
 {
@@ -12,28 +14,56 @@ namespace AI.SmartCut
         public MainWindow()
         {
             InitializeComponent();
+            TxtStatus.Text = "Ready";
         }
 
         private void RemoveBackground_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog
             {
-                Filter = "Image Files|*.png;*.jpg;*.jpeg"
+                Filter = "Image Files|*.png;*.jpg;*.jpeg;*.bmp;*.webp"
             };
 
             if (dialog.ShowDialog() == true)
             {
-                using var image = Image.Load<Rgba32>(dialog.FileName);
-                var result = BackgroundRemover.RemoveBackground(image);
+                try
+                {
+                    TxtStatus.Text = "Processing...";
+                    using var img = Image.Load<Rgba32>(dialog.FileName);
+                    ImgOriginal.Source = ToBitmapImage(img);
 
-                var savePath = Path.Combine(
-                    Path.GetDirectoryName(dialog.FileName),
-                    Path.GetFileNameWithoutExtension(dialog.FileName) + "_nobg.png"
-                );
+                    using var cut = BackgroundRemover.RemoveBackground(img);
+                    ImgCutout.Source = ToBitmapImage(cut);
 
-                result.Save(savePath);
-                MessageBox.Show($"Saved without background at:\n{savePath}", "Done", MessageBoxButton.OK, MessageBoxImage.Information);
+                    // Save beside original
+                    var savePath = Path.Combine(
+                        Path.GetDirectoryName(dialog.FileName)!,
+                        Path.GetFileNameWithoutExtension(dialog.FileName) + "_nobg.png"
+                    );
+                    cut.Save(savePath, new PngEncoder() { ColorType = PngColorType.Rgba });
+                    TxtStatus.Text = $"Saved: {savePath}";
+                }
+                catch (Exception ex)
+                {
+                    TxtStatus.Text = "Error";
+                    MessageBox.Show(ex.Message, "AI SmartCut", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
+        }
+
+        private static BitmapImage ToBitmapImage(Image<Rgba32> image)
+        {
+            using var ms = new MemoryStream();
+            image.SaveAsPng(ms);
+            ms.Position = 0;
+
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.StreamSource = ms;
+            bmp.EndInit();
+            bmp.Freeze();
+            return bmp;
         }
     }
 }
