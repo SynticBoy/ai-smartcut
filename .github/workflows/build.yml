@@ -1,31 +1,33 @@
-name: build-windows-artifact
+name: Build AI SmartCut
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-2022  # پایدارتر از windows-latest
+    runs-on: windows-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        lfs: true  # تا مدل بزرگ بیاد
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
 
-      - name: Restore
-        run: dotnet restore "src/AI.SmartCut/AI.SmartCut.csproj" -r win-x64
+    - name: Restore
+      run: dotnet restore src/AI.SmartCut/AI.SmartCut.csproj
 
-      - name: Publish (Self-Contained)
-        run: dotnet publish "src/AI.SmartCut/AI.SmartCut.csproj" -c Release -r win-x64 --self-contained true -o out/AI.SmartCut
+    - name: Build
+      run: dotnet publish src/AI.SmartCut/AI.SmartCut.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:PublishTrimmed=true
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: AI-SmartCut-Exe
-          path: out/AI.SmartCut/**
-          if-no-files-found: error
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ai-smartcut
+        path: src/AI.SmartCut/bin/Release/net8.0-windows/win-x64/publish/
