@@ -1,48 +1,61 @@
-name: Build & Publish AI.SmartCut
+name: Build & Publish (AI.SmartCut)
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
 
+    env:
+      PROJECT_PATH: src/AI.SmartCut/AI.SmartCut.csproj
+      RUNTIME_ID: win-x64
+      CONFIG: Release
+      FRAMEWORK: net8.0-windows
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET SDK
+      - name: Setup .NET SDK 8
         uses: actions/setup-dotnet@v4
         with:
-            dotnet-version: |
-              9.0.303
-              8.0.x
+          dotnet-version: 8.0.x
+          cache: true
+          cache-dependency-path: |
+            **/global.json
+            **/*.csproj
+            **/packages.lock.json
+            **/NuGet.config
 
       - name: Restore
-        run: dotnet restore ./src/AI.SmartCut/AI.SmartCut.csproj
+        run: dotnet restore $env:PROJECT_PATH --nologo
 
-      - name: Build (Debug)
-        run: dotnet build ./src/AI.SmartCut/AI.SmartCut.csproj -c Debug --no-restore
+      - name: Build
+        run: dotnet build $env:PROJECT_PATH -c $env:CONFIG --no-restore --nologo
 
-      - name: Publish (Self-contained, Single-file, No Trimming)
+      - name: Publish (self-contained, single-file, no trimming)
         run: >
-          dotnet publish ./src/AI.SmartCut/AI.SmartCut.csproj
-          -c Release
-          -r win-x64
+          dotnet publish $env:PROJECT_PATH
+          -c $env:CONFIG
+          -r $env:RUNTIME_ID
           --self-contained true
           -p:PublishSingleFile=true
           -p:PublishReadyToRun=true
           -p:IncludeAllContentForSelfExtract=true
           -p:EnableCompressionInSingleFile=true
           -p:PublishTrimmed=false
-          /p:WarnOnTrimAnalysis=false
+          -p:WarnOnTrimAnalysis=false
+          --nologo
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AI.SmartCut-win-x64
+          name: AI.SmartCut-${{ env.RUNTIME_ID }}
           path: |
-            src/AI.SmartCut/bin/Release/net8.0-windows/win-x64/publish/**
+            src/AI.SmartCut/bin/${{ env.CONFIG }}/${{ env.FRAMEWORK }}/${{ env.RUNTIME_ID }}/publish/**
+          if-no-files-found: error
