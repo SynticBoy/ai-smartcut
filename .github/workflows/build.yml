@@ -1,33 +1,48 @@
-name: Build AI SmartCut
+name: Build & Publish AI.SmartCut
 
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch:
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        lfs: true  # تا مدل بزرگ بیاد
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+            dotnet-version: |
+              9.0.303
+              8.0.x
 
-    - name: Restore
-      run: dotnet restore src/AI.SmartCut/AI.SmartCut.csproj
+      - name: Restore
+        run: dotnet restore ./src/AI.SmartCut/AI.SmartCut.csproj
 
-    - name: Build
-      run: dotnet publish src/AI.SmartCut/AI.SmartCut.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:PublishTrimmed=true
+      - name: Build (Debug)
+        run: dotnet build ./src/AI.SmartCut/AI.SmartCut.csproj -c Debug --no-restore
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ai-smartcut
-        path: src/AI.SmartCut/bin/Release/net8.0-windows/win-x64/publish/
+      - name: Publish (Self-contained, Single-file, No Trimming)
+        run: >
+          dotnet publish ./src/AI.SmartCut/AI.SmartCut.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:PublishReadyToRun=true
+          -p:IncludeAllContentForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:PublishTrimmed=false
+          /p:WarnOnTrimAnalysis=false
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI.SmartCut-win-x64
+          path: |
+            src/AI.SmartCut/bin/Release/net8.0-windows/win-x64/publish/**
