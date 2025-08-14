@@ -1,7 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
-
   <PropertyGroup>
-    <!-- Target -->
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
@@ -9,10 +7,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 
+    <!-- WPF + trimming do not mix -->
     <PublishTrimmed>false</PublishTrimmed>
-    <TrimMode>copyused</TrimMode> 
-    <PublishAot>false</PublishAot> 
+    <PublishAot>false</PublishAot>
 
+    <!-- Publish settings -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
@@ -24,11 +23,4 @@
     <RootNamespace>AI.SmartCut</RootNamespace>
     <Version>1.0.0</Version>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="runtimes\win-x64\native\**\*.*" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="models\**\*.*" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-  -->
-
 </Project>
