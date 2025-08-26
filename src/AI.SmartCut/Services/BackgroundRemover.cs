@@ -20,12 +20,33 @@ namespace AI.SmartCut
         private static InferenceSession? _session;
         private static string? _inputName;
         private static string? _outputName;
+        private static bool _initialized = false;
+        private static string? _initializationError;
 
         static BackgroundRemover()
+        {
+            try
+            {
+                InitializeModel();
+                _initialized = true;
+            }
+            catch (Exception ex)
+            {
+                _initializationError = ex.Message;
+                // Don't throw from static constructor - let the calling method handle it
+            }
+        }
+
+        private static void InitializeModel()
         {
             var modelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Models", "u2net.onnx");
             if (!File.Exists(modelPath))
                 throw new FileNotFoundException($"Model not found at: {modelPath}");
+
+            // Check if file is actually a Git LFS pointer
+            var firstLine = File.ReadLines(modelPath).FirstOrDefault();
+            if (firstLine?.StartsWith("version https://git-lfs.github.com/spec/v1") == true)
+                throw new FileNotFoundException($"Model file is a Git LFS pointer. Please download the actual u2net.onnx model file.");
 
             // Create session once
             _session = new InferenceSession(modelPath);
@@ -33,6 +54,12 @@ namespace AI.SmartCut
             // Detect IO names robustly
             var inputs = _session.InputMetadata.Keys.ToList();
             var outputs = _session.OutputMetadata.Keys.ToList();
+
+            if (!inputs.Any())
+                throw new InvalidOperationException("No input nodes found in ONNX model");
+
+            if (!outputs.Any())
+                throw new InvalidOperationException("No output nodes found in ONNX model");
 
             _inputName = inputs.FirstOrDefault(n =>
                 string.Equals(n, "input", StringComparison.OrdinalIgnoreCase) ||
@@ -50,39 +77,81 @@ namespace AI.SmartCut
         }
 
         /// <summary>
+        /// Checks if the background removal model is properly initialized and ready to use.
+        /// </summary>
+        /// <returns>True if the model is ready, false otherwise.</returns>
+        public static bool IsModelReady()
+        {
+            return _initialized && _session != null;
+        }
+
+        /// <summary>
+        /// Gets the current initialization status and any error messages.
+        /// </summary>
+        /// <returns>A tuple containing initialization status and error message if any.</returns>
+        public static (bool IsReady, string? ErrorMessage) GetModelStatus()
+        {
+            if (_initialized)
+                return (true, null);
+            
+            return (false, _initializationError ?? "Model initialization failed");
+        }
+
+        /// <summary>
         /// Removes background via U^2-Net ONNX (returns RGBA image with alpha from mask).
         /// </summary>
         public static Image<Rgba32> RemoveBackground(Image<Rgba32> inputImage)
         {
-            if (_session is null) throw new InvalidOperationException("ONNX session not initialized.");
+            if (inputImage == null)
+                throw new ArgumentNullException(nameof(inputImage), "Input image cannot be null");
+
+            if (inputImage.Width <= 0 || inputImage.Height <= 0)
+                throw new ArgumentException("Input image dimensions must be greater than zero", nameof(inputImage));
+
+            if (!_initialized)
+            {
+                if (!string.IsNullOrEmpty(_initializationError))
+                    throw new InvalidOperationException($"Model not initialized: {_initializationError}");
+                throw new InvalidOperationException("Model initialization failed");
+            }
+
+            if (_session is null) 
+                throw new InvalidOperationException("ONNX session not initialized.");
 
             lock (_lock)
             {
-                // Keep original size for final output
-                int ow = inputImage.Width;
-                int oh = inputImage.Height;
-
-                // Prepare model input
-                using var resized = inputImage.Clone(ctx => ctx.Resize(ModelW, ModelH));
-                var input = ImageToCHW(resized); // 1x3xH xW
-
-                // Run inference
-                using var results = _session.Run(new List<NamedOnnxValue>
+                try
                 {
-                    NamedOnnxValue.CreateFromTensor(_inputName!, input)
-                });
+                    // Keep original size for final output
+                    int ow = inputImage.Width;
+                    int oh = inputImage.Height;
 
-                // Read mask tensor (assume NCHW 1x1xH xW or NHWC variants -> handled below)
-                var maskTensor = ExtractMask(results, ModelH, ModelW);
+                    // Prepare model input
+                    using var resized = inputImage.Clone(ctx => ctx.Resize(ModelW, ModelH));
+                    var input = ImageToCHW(resized); // 1x3xH xW
 
-                // Convert tensor to grayscale mask [0..255]
-                using var maskImg = TensorToGray(maskTensor, ModelW, ModelH, normalize: true);
+                    // Run inference
+                    using var results = _session.Run(new List<NamedOnnxValue>
+                    {
+                        NamedOnnxValue.CreateFromTensor(_inputName!, input)
+                    });
 
-                // Resize mask to original size
-                using var finalMask = maskImg.Clone(ctx => ctx.Resize(ow, oh));
+                    // Read mask tensor (assume NCHW 1x1xH xW or NHWC variants -> handled below)
+                    var maskTensor = ExtractMask(results, ModelH, ModelW);
 
-                // Apply to original (create cut-out with alpha)
-                return ApplyAlpha(inputImage, finalMask);
+                    // Convert tensor to grayscale mask [0..255]
+                    using var maskImg = TensorToGray(maskTensor, ModelW, ModelH, normalize: true);
+
+                    // Resize mask to original size
+                    using var finalMask = maskImg.Clone(ctx => ctx.Resize(ow, oh));
+
+                    // Apply to original (create cut-out with alpha)
+                    return ApplyAlpha(inputImage, finalMask);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException($"Background removal failed: {ex.Message}", ex);
+                }
             }
         }
 
