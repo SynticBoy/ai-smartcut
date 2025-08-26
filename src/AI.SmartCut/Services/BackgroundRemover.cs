@@ -23,12 +23,26 @@ namespace AI.SmartCut
 
         static BackgroundRemover()
         {
-            var modelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Models", "u2net.onnx");
+            var modelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models", "u2net.onnx");
             if (!File.Exists(modelPath))
-                throw new FileNotFoundException($"Model not found at: {modelPath}");
+                throw new FileNotFoundException($"Model not found at: {modelPath}. Please ensure the U2Net ONNX model is downloaded and placed in the models directory.");
 
-            // Create session once
-            _session = new InferenceSession(modelPath);
+            // Validate model file is not a Git LFS pointer
+            var fileInfo = new FileInfo(modelPath);
+            if (fileInfo.Length < 1024) // Git LFS pointer files are small text files
+            {
+                throw new InvalidDataException($"Model file appears to be a Git LFS pointer file. Please download the actual model file using 'git lfs pull' or manually download the U2Net ONNX model.");
+            }
+
+            try
+            {
+                // Create session once
+                _session = new InferenceSession(modelPath);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to load ONNX model from {modelPath}. Please verify the model file is valid and compatible with ONNX Runtime.", ex);
+            }
 
             // Detect IO names robustly
             var inputs = _session.InputMetadata.Keys.ToList();

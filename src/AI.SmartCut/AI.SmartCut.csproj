@@ -30,7 +30,7 @@
 
   <!-- Ensure your model/assets are copied to output -->
   <ItemGroup>
-    <None Include="models\**\*.*" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="assets\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Assets\Models\**\*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="models" />
+    <None Include="Assets\**\*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="assets" />
   </ItemGroup>
 </Project>

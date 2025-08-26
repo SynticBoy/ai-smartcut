@@ -4,6 +4,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Formats.Png;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
 
@@ -17,7 +18,7 @@ namespace AI.SmartCut
             TxtStatus.Text = "Ready";
         }
 
-        private void RemoveBackground_Click(object sender, RoutedEventArgs e)
+        private async void RemoveBackground_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog
             {
@@ -30,12 +31,16 @@ namespace AI.SmartCut
                 try
                 {
                     TxtStatus.Text = "Processing...";
+                    BtnRemoveBg.IsEnabled = false; // Disable button during processing
 
                     using var img = Image.Load<Rgba32>(dialog.FileName);
                     ImgOriginal.Source = ToBitmapImage(img);
 
-                    using var cut = BackgroundRemover.RemoveBackground(img);
-                    ImgCutout.Source = ToBitmapImage(cut);
+                    // Run background removal on a background thread to avoid UI freezing
+                    var cut = await Task.Run(() => BackgroundRemover.RemoveBackground(img));
+                    using (cut)
+                    {
+                        ImgCutout.Source = ToBitmapImage(cut);
 
                     // Save beside original
                     var savePath = Path.Combine(
@@ -48,13 +53,37 @@ namespace AI.SmartCut
                         ColorType = PngColorType.RgbWithAlpha
                     };
 
-                    cut.Save(savePath, encoder);
-                    TxtStatus.Text = $"Saved: {savePath}";
+                        cut.Save(savePath, encoder);
+                        TxtStatus.Text = $"Saved: {savePath}";
+                    }
+                }
+                catch (FileNotFoundException ex)
+                {
+                    TxtStatus.Text = "Model file missing";
+                    MessageBox.Show($"Model Error: {ex.Message}\n\nPlease check the models directory and ensure the U2Net ONNX model is properly installed.", 
+                        "AI SmartCut - Model Missing", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                catch (InvalidDataException ex)
+                {
+                    TxtStatus.Text = "Invalid model file";
+                    MessageBox.Show($"Model Error: {ex.Message}\n\nThe model file appears to be corrupted or is a Git LFS pointer file.", 
+                        "AI SmartCut - Invalid Model", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    TxtStatus.Text = "Model loading failed";
+                    MessageBox.Show($"ONNX Runtime Error: {ex.Message}\n\nPlease verify the model file is compatible with ONNX Runtime.", 
+                        "AI SmartCut - Model Loading Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 catch (Exception ex)
                 {
-                    TxtStatus.Text = "Error";
-                    MessageBox.Show(ex.Message, "AI SmartCut", MessageBoxButton.OK, MessageBoxImage.Error);
+                    TxtStatus.Text = "Processing error";
+                    MessageBox.Show($"Unexpected Error: {ex.Message}\n\nPlease try again or check the image file format.", 
+                        "AI SmartCut - Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                finally
+                {
+                    BtnRemoveBg.IsEnabled = true; // Re-enable button after processing
                 }
             }
         }
